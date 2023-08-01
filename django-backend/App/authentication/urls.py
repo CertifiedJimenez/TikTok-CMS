@@ -1,10 +1,13 @@
-from django.urls import path, include
-from django.views.generic import TemplateView
-from django.contrib.auth.views import LogoutView
-from . import views
+# from django.conf.urls import url
+from django.urls import path
+from .views import (
+    LoginView, LogoutView, RegisterView
+)
+
 
 urlpatterns = [
-    path('login', views.login, name='login'),
-    path('register', views.register, name='login'),
-    path('OauthGoogle', views.OauthGoogle, name="OauthGoogle")
+    # path(r'^login/$', LoginView.as_view(), name='rest_login'),
+    path('login', LoginView.as_view(), name='rest_login'),
+    path('logout', LogoutView.as_view(), name='rest_logout'),
+    path('register', RegisterView.as_view(), name='rest_register'),
 ]

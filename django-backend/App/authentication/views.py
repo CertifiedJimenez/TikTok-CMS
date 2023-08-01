@@ -15,23 +15,29 @@ from rest_framework.response import Response
 from rest_framework.generics import GenericAPIView, RetrieveUpdateAPIView, CreateAPIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.exceptions import NotFound
+
+# allAuth
+from allauth.socialaccount.models import SocialAccount
+from allauth.socialaccount.adapter import get_adapter as get_social_adapter
+from allauth.socialaccount import signals
+from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 
 # utils
 from .utils import EncodeJWT
 
-# decirators
+# seralizers
+from .seralizers import (
+    LoginSerializer, JWTSerializer, RegisterSerializer,
+    MyTokenObtainPairSerializer, SocialLoginSerializer, 
+    SocialConnectSerializer
+)
+
+# decorators
 from .decorators import (
     authentication_sensitive_post_parameters,
     creation_sensitive_post_parameters_m
 )
-
-# seralizers
-from .seralizers import (
-    LoginSerializer, JWTSerializer, RegisterSerializer,
-    MyTokenObtainPairSerializer
-)
-
-
 
 # def register_permission_classes():
 #     permission_classes = [AllowAny, ]
@@ -46,7 +52,7 @@ class LoginView(GenericAPIView):
     if the credentials are valid and authenticated.
 
     Accept the following POST parameters: username, password
-    Return the REST Framework Token Object's key.
+    Return the REST Framework JWT Object's key.
     """
 
     permission_classes = (AllowAny,)
@@ -122,7 +128,6 @@ class LogoutView(APIView):
             request.user.auth_token.delete()
         except (AttributeError, ObjectDoesNotExist):
             pass
-
         django_logout(request)
         response = Response({"detail": _("Successfully logged out.")}, status=status.HTTP_200_OK)
         if getattr(settings, 'SIMPLE_JWT', False):
@@ -131,6 +136,14 @@ class LogoutView(APIView):
         return response
 
 class RegisterView(CreateAPIView):
+    """
+    Creates a user account and returns the REST Token
+    if the input is valid it will create an account.
+
+    Accept the following POST parameters: username, password1, password2
+    Return the REST Framework JWT Object's key.
+    """
+
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny, ]
 
@@ -156,19 +169,51 @@ class RegisterView(CreateAPIView):
 
     def perform_create(self, serializer):
         user = serializer.save(self.request)
-        self.token = MyTokenObtainPairSerializer.get_token(user)#EncodeJWT(user)
+        self.token = MyTokenObtainPairSerializer.get_token(user) #EncodeJWT(user)
         # complete_signup(self.request._request, user, allauth_settings.EMAIL_VERIFICATION, None)
         return user
 
+class SocialLoginView(LoginView):
+    """
+    class used for social authentications
 
+    """
+    serializer_class = SocialLoginSerializer
 
+    def process_login(self):
+        get_adapter(self.request).login(self.request, self.user)
 
+class SocialAccountDisconnectView(GenericAPIView):
+    """
+    Disconnect SocialAccount from remote service for
+    the currently logged in user
+    """
+    serializer_class = SocialConnectSerializer
+    permission_classes = (IsAuthenticated,)
 
+    def get_queryset(self):
+        return SocialAccount.objects.filter(user=self.request.user)
 
+    def post(self, request, *args, **kwargs):
+        accounts = self.get_queryset()
+        account = accounts.filter(pk=kwargs['pk']).first()
+        if not account:
+            raise NotFound
 
+        get_social_adapter(self.request).validate_disconnect(account, accounts)
 
+        account.delete()
+        signals.social_account_removed.send(
+            sender=SocialAccount,
+            request=self.request,
+            socialaccount=account
+        )
 
+        return Response(self.get_serializer(account).data)
 
+class GoogleLogin(SocialLoginView):
+    adapter_class = GoogleOAuth2Adapter
+    pass
 
 
 

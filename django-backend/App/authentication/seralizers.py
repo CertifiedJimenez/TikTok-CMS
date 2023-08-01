@@ -1,12 +1,13 @@
 # django
+from django.http import HttpRequest
 from django.contrib.auth import get_user_model, authenticate
 from django.conf import settings
-from rest_framework import serializers, exceptions
 from django.utils.translation import gettext_lazy as _
 
 # REST
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework import serializers, exceptions
 
 # auth
 try:
@@ -25,7 +26,7 @@ UserModel = get_user_model()
 
 class UserDetailsSerializer(serializers.ModelSerializer):
     """
-    User model w/o password
+    User model without password
     """
     class Meta:
         model = UserModel
@@ -121,6 +122,31 @@ class RegisterSerializer(serializers.Serializer):
         # setup_user_email(request, user, [])
         return user
 
+class SocialConnectMixin(object):
+    def get_social_login(self, *args, **kwargs):
+        """
+        Set the social login process state to connect rather than login
+        Refer to the implementation of get_social_login in base class and to the
+        allauth.socialaccount.helpers module complete_social_login function.
+        """
+        social_login = super(SocialConnectMixin, self).get_social_login(*args, **kwargs)
+        social_login.state['process'] = AuthProcess.CONNECT
+        return social_login
+
+class SocialLoginSerializer(serializers.Serializer):
+    access_token = serializers.CharField(required=False, allow_blank=True)
+    code = serializers.CharField(required=False, allow_blank=True)
+
+    def _get_request(self):
+        request = self.context.get('request')
+        if not isinstance(request, HttpRequest):
+            request = request._request
+        return request
+
+class SocialConnectSerializer(SocialConnectMixin, SocialLoginSerializer):
+    pass
+
+# Custom User output
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):

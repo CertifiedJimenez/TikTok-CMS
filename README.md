@@ -132,7 +132,7 @@ The Authentication REST API to the Tiktok app is described below.
     Content-Type: application/json
     Content-Length: 2
 
-    {
+    [{
         "id": 1,
         "title": "Example Post",
         "content": "This is an example post with some content.",
@@ -140,5 +140,5 @@ The Authentication REST API to the Tiktok app is described below.
         "picture_url": "http://example.com/media/images/example_picture.jpg",
         "username": "user@example.com",
         "posted_at": "2023-08-02T12:34:56.789Z"
-    }
+    }]
 

@@ -25,6 +25,51 @@ It uses `run-curl-tests.rb` which runs each command defined in
 
    python manage.py test 
 
+
+# REST API
+
+The Authentication REST API to the example app is described below.
+
+## Get list of Things
+
+### Request
+
+`POST /API/login`
+
+    curl -i -H 'Accept: application/json' -d 'email=example@example.com&password=test123'  http://localhost:8000/API/login/
+
+### Response
+
+    HTTP/1.1 200 OK
+    Date: Thu, 24 Feb 2023 12:36:30 GMT
+    Status: 200 OK
+    Content-Type: application/json
+    Content-Length: 2
+
+    {"token":2304787d8978979789d,"refresg":"234234342342342}
+
+
+## Create a new Thing
+
+### Request
+
+`POST /thing/`
+
+    curl -i -H 'Accept: application/json' -d 'name=Foo&status=new' http://localhost:7000/thing
+
+### Response
+
+    HTTP/1.1 201 Created
+    Date: Thu, 24 Feb 2011 12:36:30 GMT
+    Status: 201 Created
+    Connection: close
+    Content-Type: application/json
+    Location: /thing/1
+    Content-Length: 36
+
+    {"id":1,"name":"Foo","status":"new"}
+
+
 # REST API
 
 The REST API to the example app is described below.

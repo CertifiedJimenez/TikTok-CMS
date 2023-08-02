@@ -1,3 +1,6 @@
+# TikTok-CMS App
+![Thumbnail](https://github.com/CertifiedJimenez/TikTok-CMS/assets/59393533/3b588bb8-4042-4d4a-852b-a2e96832700b)
+
 # TikTok-CMS REST API
 
 The TikTok CMS API allows the user using react or any framework

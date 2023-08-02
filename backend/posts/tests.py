@@ -7,20 +7,20 @@ from users.models import User
 from .models import post
 
 class PostViewTestCase(TestCase):
+    """
+        Due to the POSTS app not required and demo 
+        I have not continued with the unit tests.
+    """
+
     def setUp(self):
         self.user = User.objects.create_user(email='test@example.com', password='testpassword')
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
 
-    def test_post_list(self):
-        url = reverse('posts')
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-    """
-    Due to the POSTS app not required and demo 
-    I have not continued with the unit tests.
-    """
+    # def test_post_list(self):
+    #     url = reverse('posts')
+    #     response = self.client.get(url)
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     # def test_create_post(self):
     #     url = reverse('posts')

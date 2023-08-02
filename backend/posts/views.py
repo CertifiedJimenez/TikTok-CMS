@@ -27,12 +27,13 @@ class PostView(APIView):
         return Response(serializer.data)
 
     def post(self, request, format=None):
-        data = request.data.copy() 
-        data['posted_by'] = request.user.id
-        serializer = PostSerializer(data=data)
+        request.data['posted_by'] = request.user.id
+        print(request.data)
+        serializer = PostSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(posted_by=request.user)
             return Response(serializer.data, status=201)
+        print(serializer.errors)
         return Response(serializer.errors, status=400)
 
     def delete(self, request, pk, format=None):

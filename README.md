@@ -30,7 +30,23 @@ It uses `run-curl-tests.rb` which runs each command defined in
 
 The Authentication REST API to the example app is described below.
 
-## Get list of Things
+## Login User
+
+### Request
+
+`POST API/rest-auth/google_login/`
+
+    curl -i -H 'Accept: application/json' -d 'access_token='2304787d8978979789d'&code=''  http://localhost:8000/API/rest-auth/google_login/
+
+### Response
+
+    HTTP/1.1 200 OK
+    Date: Thu, 24 Feb 2023 12:36:30 GMT
+    Status: 200 OK
+    Content-Type: application/json
+    Content-Length: 2
+
+    {"token":2304787d8978979789d,"refresh":"34543534bb3453434c34x345345}
 
 ### Request
 
@@ -46,7 +62,8 @@ The Authentication REST API to the example app is described below.
     Content-Type: application/json
     Content-Length: 2
 
-    {"token":2304787d8978979789d,"refresg":"234234342342342}
+    {"token":2304787d8978979789d,"refresh":"34543534bb3453434c34x345345}
+
 
 
 ## Create a new Thing

@@ -25,7 +25,6 @@ It uses `run-curl-tests.rb` which runs each command defined in
 
    python manage.py test 
    
-## Done
 
 # REST API
 

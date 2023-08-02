@@ -66,6 +66,24 @@ The Authentication REST API to the example app is described below.
 
     {"token":2304787d8978979789d,"refresh":"34543534bb3453434c34x345345}
 
+## Register
+
+### Request
+
+`POST API/rest-auth/google_login/`
+
+    curl -i -H 'Accept: application/json' -d 'email='person@example.com'&password1='Admin123@'&password2='Admin123@'  http://localhost:8000/API/register/
+
+### Response
+
+    HTTP/1.1 200 OK
+    Date: Thu, 24 Feb 2023 12:36:30 GMT
+    Status: 200 OK
+    Content-Type: application/json
+    Content-Length: 2
+
+    {"token":2304787d8978979789d,"refresh":"34543534bb3453434c34x345345}
+
 ## Create a new Thing
 
 ### Request

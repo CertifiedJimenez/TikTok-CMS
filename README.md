@@ -13,17 +13,17 @@ documentation below.
 It uses `run-curl-tests.rb` which runs each command defined in
 `commands.yml`.
 
-## Install
+## Install dependencies 
 
-    bundle install
+    python -m pip install requirements.txt 
 
 ## Run the app
 
-    unicorn -p 7000
+    python manage.py runserver
 
 ## Run the tests
 
-    ./run-tests.sh
+   python manage.py test 
 
 # REST API
 

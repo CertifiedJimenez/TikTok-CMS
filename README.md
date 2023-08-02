@@ -3,15 +3,7 @@
 The TikTok CMS API allows the user using react or any framework
 to upload their content using the Django REST API.
 
-The entire application is contained within the `backend` folder.
-
-`config.ru` is a minimal Rack configuration for unicorn.
-
-`run-tests.sh` runs a simplistic test and generates the API
-documentation below.
-
-It uses `run-curl-tests.rb` which runs each command defined in
-`commands.yml`.
+The entire REST application is contained within the `backend` folder.
 
 ## Install dependencies 
 
@@ -28,7 +20,7 @@ It uses `run-curl-tests.rb` which runs each command defined in
 
 # REST API
 
-The Authentication REST API to the example app is described below.
+The Authentication REST API to the Tiktok app is described below.
 
 ## Login
 

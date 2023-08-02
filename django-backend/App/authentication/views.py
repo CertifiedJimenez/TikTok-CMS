@@ -20,8 +20,11 @@ from rest_framework.exceptions import NotFound
 # allAuth
 from allauth.socialaccount.models import SocialAccount
 from allauth.socialaccount.adapter import get_adapter as get_social_adapter
+from allauth.account.adapter import get_adapter
 from allauth.socialaccount import signals
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
+from allauth.socialaccount.providers.oauth2.client import OAuth2Client
+
 
 # utils
 from .utils import EncodeJWT
@@ -30,7 +33,7 @@ from .utils import EncodeJWT
 from .seralizers import (
     LoginSerializer, JWTSerializer, RegisterSerializer,
     MyTokenObtainPairSerializer, SocialLoginSerializer, 
-    SocialConnectSerializer
+    SocialConnectSerializer, #GoogleLoginSerializer
 )
 
 # decorators
@@ -99,7 +102,7 @@ class LoginView(GenericAPIView):
         self.request = request
         self.serializer = self.get_serializer(data=self.request.data, context={'request': request})
         self.serializer.is_valid(raise_exception=True)
-
+        
         self.login()
         return self.get_response()
 
@@ -176,133 +179,162 @@ class RegisterView(CreateAPIView):
 class SocialLoginView(LoginView):
     """
     class used for social authentications
-
     """
     serializer_class = SocialLoginSerializer
 
     def process_login(self):
+        print(get_social_adapter(self.request))
         get_adapter(self.request).login(self.request, self.user)
 
-class SocialAccountDisconnectView(GenericAPIView):
-    """
-    Disconnect SocialAccount from remote service for
-    the currently logged in user
-    """
-    serializer_class = SocialConnectSerializer
-    permission_classes = (IsAuthenticated,)
+    def get_serializer(self, *args, **kwargs):
+        serializer_class = self.get_serializer_class()
+        kwargs['context'] = self.get_serializer_context()
+        return serializer_class(*args, **kwargs)
 
-    def get_queryset(self):
-        return SocialAccount.objects.filter(user=self.request.user)
 
-    def post(self, request, *args, **kwargs):
-        accounts = self.get_queryset()
-        account = accounts.filter(pk=kwargs['pk']).first()
-        if not account:
-            raise NotFound
 
-        get_social_adapter(self.request).validate_disconnect(account, accounts)
 
-        account.delete()
-        signals.social_account_removed.send(
-            sender=SocialAccount,
-            request=self.request,
-            socialaccount=account
-        )
 
-        return Response(self.get_serializer(account).data)
+
+from django.conf import settings
+
+import jwt
+
+from allauth.socialaccount.providers.oauth2.client import OAuth2Error
+from allauth.socialaccount.providers.oauth2.views import (
+    OAuth2Adapter,
+    OAuth2CallbackView,
+    OAuth2LoginView,
+)
+
+from allauth.socialaccount.providers.google.provider import GoogleProvider
+
+
+ACCESS_TOKEN_URL = (
+    getattr(settings, "SOCIALACCOUNT_PROVIDERS", {})
+    .get("google", {})
+    .get("ACCESS_TOKEN_URL", "https://oauth2.googleapis.com/token")
+)
+
+AUTHORIZE_URL = (
+    getattr(settings, "SOCIALACCOUNT_PROVIDERS", {})
+    .get("google", {})
+    .get("ACCESS_TOKEN_URL", "https://accounts.google.com/o/oauth2/v2/auth")
+)
+
+ID_TOKEN_ISSUER = (
+    getattr(settings, "SOCIALACCOUNT_PROVIDERS", {})
+    .get("google", {})
+    .get("ID_TOKEN_ISSUER", "https://accounts.google.com")
+)
+
+from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
+
+
+class CustomGoogleOAuth2Adapter(OAuth2Adapter):
+    provider_id = GoogleProvider.id
+    access_token_url = ACCESS_TOKEN_URL
+    authorize_url = AUTHORIZE_URL
+    id_token_issuer = ID_TOKEN_ISSUER
+
+    def complete_login(self, request, app, token, response, **kwargs):
+        try:
+            identity_data = jwt.decode(
+                response,
+                # Since the token was received by direct communication
+                # protected by TLS between this library and Google, we
+                # are allowed to skip checking the token signature
+                # according to the OpenID Connect Core 1.0
+                # specification.
+                # https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation
+                options={
+                    "verify_signature": False,
+                    "verify_iss": True,
+                    "verify_aud": True,
+                    "verify_exp": True,
+                },
+                issuer=self.id_token_issuer,
+                audience=app.client_id,
+                verify = False
+            )
+        except jwt.PyJWTError as e:
+            raise OAuth2Error("Invalid id_token") from e
+        login = self.get_provider().sociallogin_from_response(request, identity_data)
+        return login
+
+
 
 class GoogleLogin(SocialLoginView):
-    adapter_class = GoogleOAuth2Adapter
-    pass
+    adapter_class = CustomGoogleOAuth2Adapter
 
 
 
 
+# ======================================
+# # class SocialLoginView(LoginView):
+# #     """
+# #     class used for social authentications
+# #     """
+# #     serializer_class = SocialLoginSerializer
+
+# #     def process_login(self):
+# #         get_adapter(self.request).login(self.request, self.user)
+
+# # class GoogleLoginView(SocialLoginView):
+# #     serializer_class = GoogleLoginSerializer
+# #     adapter_class = GoogleOAuth2Adapter
+# #     # client_class = OAuth2Client
+# #     # callback_url = '/'
+
+# #     def get_serializer(self, *args, **kwargs):
+# #         serializer_class = self.get_serializer_class()
+# #         kwargs['context'] = self.get_serializer_context()
+# #         return serializer_class(*args, **kwargs)
+
+# class SocialAccountDisconnectView(GenericAPIView):
+#     """
+#     Disconnect SocialAccount from remote service for
+#     the currently logged in user
+#     """
+#     serializer_class = SocialConnectSerializer
+#     permission_classes = (IsAuthenticated,)
+
+#     def get_queryset(self):
+#         return SocialAccount.objects.filter(user=self.request.user)
+
+#     def post(self, request, *args, **kwargs):
+#         accounts = self.get_queryset()
+#         account = accounts.filter(pk=kwargs['pk']).first()
+#         if not account:
+#             raise NotFound
+
+#         get_social_adapter(self.request).validate_disconnect(account, accounts)
+
+#         account.delete()
+#         signals.social_account_removed.send(
+#             sender=SocialAccount,
+#             request=self.request,
+#             socialaccount=account
+#         )
+
+#         return Response(self.get_serializer(account).data)
 
 
+# =========================================
+# from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
+# from allauth.socialaccount.providers.oauth2.client import OAuth2Client
+# from rest_auth.registration.views import SocialLoginView
 
+# class GoogleLogin(SocialLoginView):
+# # Custom adapter is created because obsolete URLs are used inside django-allauth library
+#     class GoogleAdapter(GoogleOAuth2Adapter):
+#         access_token_url = "https://oauth2.googleapis.com/token"
+#         authorize_url = "https://accounts.google.com/o/oauth2/v2/auth"
+#         profile_url = "https://www.googleapis.com/oauth2/v2/userinfo"
 
+#     adapter_class = GoogleAdapter
+#     callback_url = "http://replace-with-your-url.com/oauth/"
+#     client_class = OAuth2Client
 
-# from rest_framework.views import APIView
-# from rest_framework.response import Response
-# from rest_framework.permissions import IsAuthenticated
-# from rest_framework.permissions import AllowAny
-# from rest_framework.authtoken.models import Token
-# from rest_framework.decorators import api_view, permission_classes
-# from django.views.decorators.csrf import csrf_exempt
-# import json
-# from.models import User
-
-
-
-# @csrf_exempt
-# @api_view(['POST'])
-# def login(request):
-#     body = json.loads(request.body)
-#     email = body.get('email')
-#     password = body.get('password')
-#     try:
-#         user = User.objects.get(email=email)
-#     except User.DoesNotExist:
-#         return Response({'error': 'Invalid username or password'}, status=400)
-
-#     if user.check_password(password):
-#         token, created = Token.objects.get_or_create(user=user)
-#         response_data = {
-#             'token': token.key,
-#             'user_id': user.id,
-#         }
-#         return Response(response_data)
-#     return Response({'error': 'Invalid username or password'}, status=400)
-
-
-# @csrf_exempt
-# @api_view(['POST'])
-# def register(request):
-#     body = json.loads(request.body)
-#     email = body.get('email')
-#     password = body.get('password')
-
-#     try:
-#         user = User.objects.get(email=email)
-#         return Response({'error': 'Email already taken'}, status=400)
-    
-#     # form check for password or somethn
-    
-#     except User.DoesNotExist:
-#         user = User.objects.create_user(email, password, username=email)
-#         token, created = Token.objects.get_or_create(user=user)
-#         response_data = {
-#             'token': token.key,
-#             'user_id': user.id,
-#         }
-#         return Response(response_data)
-
-
-# @csrf_exempt
-# @api_view(['POST'])
-# def OauthGoogle(request):
-#     body = json.loads(request.body)
-#     email = body.get('email')
-#     password = body.get('password')
-
-#     if User.objects.filter(email=email).exists():
-#         user = User.objects.get(email=email)
-#         if user.check_password(password):
-#             token, created = Token.objects.get_or_create(user=user)
-#             response_data = {
-#                 'token': token.key,
-#                 'user_id': user.id,
-#             }
-#             return Response(response_data)
-#         else:
-#             print(user.check_password(password), password)
-#             return Response({'error': 'Invalid username or password'}, status=400)
-#     else:
-#         user = User.objects.create_user(email, password, username=email)
-#         token, created = Token.objects.get_or_create(user=user)
-#         response_data = {
-#             'token': token.key,
-#             'user_id': user.id,
-#         }
-#         return Response(response_data)
+#     def get(self, request, *args, **kwargs):
+#         print("YESSSSSSSSSSSSSSS")

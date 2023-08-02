@@ -85,15 +85,23 @@ MIDDLEWARE = [
 ]
 
 SOCIALACCOUNT_PROVIDERS = {
+    # 'google': {
+    #     'SCOPE': [
+    #         'profile',
+    #         'email',
+    #     ],
+    #     'AUTH_PARAMS': {
+    #         'access_type': 'online',
+    #     }
+    # },
     'google': {
-        'SCOPE': [
-            'profile',
-            'email',
-        ],
-        'AUTH_PARAMS': {
-            'access_type': 'online',
+        'APP': {
+            'client_id': '190046103428-8b378mervfe8o5qgto9pp1293sa891h0.apps.googleusercontent.com',
+            'secret': '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',
+            'key': ''
         }
     }
+
 }
 
 SITE_ID = 1
@@ -256,3 +264,6 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSlidingSerializer",
 
 }
+
+ACCOUNT_LOGOUT_ON_GET = True
+

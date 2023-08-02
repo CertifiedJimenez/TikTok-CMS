@@ -1,9 +1,12 @@
 # from django.conf.urls import url
-from django.urls import path
+from django.urls import path, re_path
 from .views import (
     LoginView, LogoutView, RegisterView,
-    SocialAccountDisconnectView, GoogleLogin
+    GoogleLogin
+    # SocialAccountDisconnectView, GoogleLoginView
 )
+
+from allauth.socialaccount.views import SignupView
 
 urlpatterns = [
     # path(r'^login/$', LoginView.as_view(), name='rest_login'),
@@ -12,6 +15,8 @@ urlpatterns = [
     path('logout', LogoutView.as_view(), name='rest_logout'),
     path('register', RegisterView.as_view(), name='rest_register'),
     path('rest-auth/google/', GoogleLogin.as_view(), name='google_login'),
-    path('socialaccounts/<pk>/disconnect/', SocialAccountDisconnectView.as_view(), 
-         name="socialaccounts_disconnect")
+    re_path(r'^accounts/', SignupView.as_view(), name='socialaccount_signup'),
+
+    # path('socialaccounts/<pk>/disconnect/', SocialAccountDisconnectView.as_view(), 
+    #      name="socialaccounts_disconnect")
 ]

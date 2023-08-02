@@ -7,11 +7,17 @@ from django.utils import timezone
 # Managers
 from .managers import UserManager
 
+SOCIAL_PROVIDERS = [
+    ("EMAIL", "EMAIL"),
+    ("GOOGLE", "GOOGLE"),
+]
+
 class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(_("email address"), unique=True)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     date_joined = models.DateTimeField(default=timezone.now)
+    # social_provider = models.CharField(max_length=50, choices=SOCIAL_PROVIDERS, default="EMAIL")
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
